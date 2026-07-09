@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>무궁화꽃이 피었습니다 v8 — 플레이 데모(러닝 모션)</title>
+<title>무궁화꽃이 피었습니다 v9 — 플레이 데모(기록·공유)</title>
 <style>
 :root{
   --bg-sky: #7ec9f0;
@@ -158,14 +158,29 @@ button.feedback:hover{ background: var(--gold); }
 button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; }
 .feedback-note{ font-size: 11px; color: var(--text-dim); max-width: 300px; margin: 0; min-height: 14px; }
 
+button.share{
+  font-family: var(--font-body); font-size: 13px; font-weight: 700;
+  color: #fff; background: var(--teal); border: none; border-radius: 20px;
+  padding: 8px 18px; cursor: pointer;
+}
+button.share:hover{ filter: brightness(1.08); }
+button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.confetti-piece{
+  position: absolute; top: -10px; width: 7px; height: 12px;
+  opacity: 0.9; pointer-events: none; z-index: 7;
+  animation: confetti-fall 1100ms ease-in forwards;
+}
+@keyframes confetti-fall{ to{ transform: translateY(340px) rotate(360deg); opacity: 0; } }
+
 .footnote{ margin-top: 18px; font-size: 11px; color: var(--text-dim); text-align: center; line-height: 1.7; }
-@media (prefers-reduced-motion: reduce){ .overlay h2.win{ animation: none; } }
+@media (prefers-reduced-motion: reduce){ .overlay h2.win{ animation: none; } .confetti-piece{ animation: none; display: none; } }
 </style>
 </head>
 <body>
 <div class="stage">
   <div class="topbar">
-    <div class="eyebrow">DAEDONG FENCE · 2부1팀 v8 · BETA</div>
+    <div class="eyebrow">DAEDONG FENCE · 2부1팀 v9 · BETA</div>
     <div class="topbar-btns">
       <button class="muteToggle" id="muteBtn">🔊</button>
       <button class="langToggle" id="langBtn">EN</button>
@@ -195,6 +210,8 @@ button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2p
       <h2 id="endTitle"></h2>
       <p id="endMsg"></p>
       <button class="retry" id="retryBtn">다시하기</button>
+      <button class="share" id="shareBtn">🔗 결과 공유하기</button>
+      <p class="feedback-note" id="shareNote"></p>
       <button class="feedback" id="feedbackBtn">✉️ 피드백 보내기</button>
       <p class="feedback-note" id="feedbackNote"></p>
     </div>
@@ -246,6 +263,9 @@ button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2p
   const roundClearTitle = document.getElementById('roundClearTitle');
   const feedbackBtn = document.getElementById('feedbackBtn');
   const feedbackNote = document.getElementById('feedbackNote');
+  const shareBtn = document.getElementById('shareBtn');
+  const shareNote = document.getElementById('shareNote');
+  const GAME_URL = 'https://khjy01031730872-netizen.github.io/mugunghwa-game/';
 
   const TRACK_START_Y = H - 60;
   const TRACK_END_Y = 70;
@@ -283,6 +303,10 @@ button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2p
       feedbackNoteSent: '메일 앱이 안 열리면, 방금 복사된 내용을 카톡으로 보내주세요.',
       feedbackSubject: '[무궁화꽃이피었습니다 베타] 피드백',
       feedbackIntro: '아래 자동 첨부된 정보는 참고용입니다. 위에 자유롭게 의견을 적어주세요.\n\n1) 난이도: 몇 라운드에서 막혔나요? 너무 빨리/천천히 어려워졌나요?\n2) 조작감: 누른 채 좌우로 미는 조작이 잘 됐나요?\n3) 버그/이상한 점이 있었나요?\n4) 다시 하고 싶었나요? 언제 재밌고 언제 지루했나요?\n\n--- 자동 첨부 정보 ---\n',
+      shareBtn: '🔗 결과 공유하기', shareTitle: '무궁화꽃이 피었습니다 — 베타',
+      shareText: 'ROUND {round}까지 갔어요! 당신은 더 갈 수 있나요? 🌺',
+      shareNoteCopied: '공유 텍스트가 복사됐어요 — 카톡 등에 붙여넣기 해서 보내주세요.',
+      newRecordMsg: '🎉 신기록 달성!', nearMissMsg: '아깝다, 거의 다 왔어요!',
       diff: { 15: '⭐⭐⭐ 어려움 — 시간 압박이 큽니다', 20: '⭐⭐ 보통', 25: '⭐⭐ 보통', 30: '⭐ 쉬움', 35: '⭐ 쉬움', 40: '☆ 여유 — 장애물·빨간불에 집중하세요', 45: '☆ 여유 — 장애물·빨간불에 집중하세요' }
     },
     en: {
@@ -301,6 +325,10 @@ button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2p
       feedbackNoteSent: "If your mail app didn't open, the text was copied — please send it via KakaoTalk instead.",
       feedbackSubject: '[Mugunghwa Beta] Feedback',
       feedbackIntro: 'The info below is auto-attached for reference. Feel free to write your thoughts above it.\n\n1) Difficulty: which round did you get stuck on? Did it ramp up too fast/slow?\n2) Controls: did hold + drag sideways feel good?\n3) Any bugs or anything odd?\n4) Did you want to replay? When was it fun vs. boring?\n\n--- auto-attached info ---\n',
+      shareBtn: '🔗 Share result', shareTitle: 'Mugunghwa Beta',
+      shareText: 'I got to ROUND {round}! Can you beat it? 🌺',
+      shareNoteCopied: 'Copied to clipboard — paste it into KakaoTalk or anywhere.',
+      newRecordMsg: '🎉 New personal best!', nearMissMsg: 'So close!',
       diff: { 15: '⭐⭐⭐ Hard — tight timing', 20: '⭐⭐ Medium', 25: '⭐⭐ Medium', 30: '⭐ Easy', 35: '⭐ Easy', 40: '☆ Relaxed — focus on red light & obstacles', 45: '☆ Relaxed — focus on red light & obstacles' }
     }
   };
@@ -310,6 +338,7 @@ button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2p
   // ---- 라운드/레벨 상태 ----
   let round = 1;
   let bestRound = 0;
+  let runStartBest = 0; // [Q-1] 이번 런 시작 시점의 기록 — 이걸 넘으면 "신기록", 같으면 "아깝다"
   try {
     const stored = parseInt(localStorage.getItem('mkp_best_round') || '0', 10);
     if(!isNaN(stored) && stored >= 0) bestRound = stored;
@@ -432,6 +461,8 @@ button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2p
     langBtn.textContent = s.langBtnLabel;
     feedbackBtn.textContent = s.feedbackBtn;
     feedbackNote.textContent = s.feedbackNoteIdle;
+    shareBtn.textContent = s.shareBtn;
+    shareNote.textContent = '';
     syncTimeUI();
     updateHud();
   }
@@ -602,27 +633,51 @@ button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2p
   }
 
   // [L-5] 실패(걸림/장애물/시간초과) 시 처리 = 런 종료. 다시하기를 누르면 라운드 1부터 재시작(아케이드형).
+  // [Q-1] 기록 추격 — updateBestRound()를 먼저 호출해 bestRound가 이번 런의 round를 반영한 뒤
+  // runStartBest(런 시작 시점 기록)와 비교해 신기록/아깝다를 판정한다.
   function endGame(won, reason){
+    updateBestRound();
     const s = STRINGS[lang];
     state = won ? 'won' : 'lost';
     loseReason = reason || 'red';
     endOverlay.classList.remove('hidden');
     feedbackNote.textContent = s.feedbackNoteIdle;
+    shareNote.textContent = '';
     redVignette.classList.remove('active');
     if(won){
       endTitle.textContent = s.winTitle; endTitle.className = 'win';
       endMsg.textContent = s.winMsg;
       playWinSfx();
     } else {
+      const isNewRecord = round > runStartBest;
+      const isNearMiss = !isNewRecord && runStartBest > 0 && round === runStartBest;
       endTitle.className = 'lose';
       let baseMsg;
       if(loseReason === 'time'){ endTitle.textContent = s.loseTitleRed; baseMsg = s.loseMsgTime; }
       else if(loseReason === 'obstacle'){ endTitle.textContent = s.loseTitleObs; baseMsg = s.loseMsgObs; }
       else { endTitle.textContent = s.loseTitleRed; baseMsg = s.loseMsgRed; }
-      endMsg.textContent = baseMsg + ' ' + s.roundWord + ' ' + round + ' ' + s.reachedWord + ' · ' + s.bestWord + ' ' + bestRound;
-      playCaughtSfx();
+      let recordLine = '';
+      if(isNewRecord) recordLine = s.newRecordMsg + ' ';
+      else if(isNearMiss) recordLine = s.nearMissMsg + ' ';
+      endMsg.textContent = recordLine + baseMsg + ' ' + s.roundWord + ' ' + round + ' ' + s.reachedWord + ' · ' + s.bestWord + ' ' + bestRound;
+      if(isNewRecord){ spawnConfetti(); playWinSfx(); }
+      else { playCaughtSfx(); }
     }
     if(animFrame){ cancelAnimationFrame(animFrame); animFrame = null; }
+  }
+
+  // [Q-1] 신기록 축하 연출 — 새 스프라이트 없이 DOM 파티클로 confetti. 저사양/모션축소 선호 시 CSS로 비활성.
+  const CONFETTI_COLORS = ['#ff6f5e', '#2bb9a3', '#ffb648', '#3fd18f'];
+  function spawnConfetti(){
+    for(let i = 0; i < 24; i++){
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.left = (Math.random() * 100) + '%';
+      el.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+      el.style.animationDelay = (Math.random() * 200) + 'ms';
+      endOverlay.appendChild(el);
+      setTimeout(() => { el.remove(); }, 1500);
+    }
   }
 
   function checkObstacles(){
@@ -898,8 +953,29 @@ button.feedback:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2p
   });
   window.addEventListener('keyup', (e) => { if(e.code === 'Space'){ holding = false; } });
 
-  startBtn.addEventListener('click', () => { startOverlay.classList.add('hidden'); round = 1; resetGame(); startGame(); });
-  retryBtn.addEventListener('click', () => { endOverlay.classList.add('hidden'); round = 1; resetGame(); startGame(); });
+  startBtn.addEventListener('click', () => { startOverlay.classList.add('hidden'); runStartBest = bestRound; round = 1; resetGame(); startGame(); });
+  retryBtn.addEventListener('click', () => { endOverlay.classList.add('hidden'); runStartBest = bestRound; round = 1; resetGame(); startGame(); });
+
+  // [Q-2] 결과 공유 — Web Share API 우선, 미지원/실패 시 클립보드 복사 폴백(피드백 M-4 패턴 재사용).
+  // 공유 텍스트는 라운드 숫자만 포함(개인정보 없음), 오징어게임 등 특정 IP 명칭은 절대 쓰지 않는다(지시 Q-3).
+  function buildShareText(){
+    return STRINGS[lang].shareText.replace('{round}', round);
+  }
+  shareBtn.addEventListener('click', async () => {
+    const s = STRINGS[lang];
+    const text = buildShareText();
+    if(navigator.share){
+      try {
+        await navigator.share({ title: s.shareTitle, text: text, url: GAME_URL });
+        return;
+      } catch(e){ /* 사용자 취소 또는 미지원 — 아래 클립보드 폴백으로 진행 */ }
+    }
+    const full = text + ' ' + GAME_URL;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(full).catch(() => {});
+    }
+    shareNote.textContent = s.shareNoteCopied;
+  });
 
   // [M] 베타 피드백 — mailto만 사용, 서버/백엔드 없음(비용 0원).
   // 자동 첨부는 익명 기술정보(라운드/사유/기기)뿐 — 이름·이메일·위치는 코드가 수집하지 않는다.
