@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>무궁화꽃이 피었습니다 v9 — 플레이 데모(기록·공유)</title>
+<title>무궁화꽃이 피었습니다 v10 — 플레이 데모(오늘의 트랙)</title>
 <style>
 :root{
   --bg-sky: #7ec9f0;
@@ -140,6 +140,16 @@ canvas{ display: block; width: 100%; height: 440px; touch-action: none; cursor: 
 .time-slider{ width: 80%; margin: 0 auto; display: block; }
 .diff-label{ font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 
+.mode-picker{ margin: 2px 0 6px; width: 100%; }
+.mode-chips{ display: flex; gap: 8px; justify-content: center; }
+.mode-chip{
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  padding: 6px 14px; border-radius: 20px; border: 2px solid var(--panel-line);
+  background: #fff; color: var(--ink); cursor: pointer;
+}
+.mode-chip.active{ background: var(--jade); color: #fff; }
+.daily-info{ font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-align: center; margin: 4px 0 0; min-height: 14px; }
+
 button.retry{
   font-family: var(--font-display); font-size: 15px; font-weight: 700;
   color: #fff; background: var(--coral); border: none; border-radius: 24px;
@@ -180,7 +190,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
 <body>
 <div class="stage">
   <div class="topbar">
-    <div class="eyebrow">DAEDONG FENCE · 2부1팀 v9 · BETA</div>
+    <div class="eyebrow">DAEDONG FENCE · 2부1팀 v10 · BETA</div>
     <div class="topbar-btns">
       <button class="muteToggle" id="muteBtn">🔊</button>
       <button class="langToggle" id="langBtn">EN</button>
@@ -198,6 +208,10 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
         <div class="icon-item"><span class="glyph">👆</span><span id="iconHold">누르고 있기 = 전진</span></div>
         <div class="icon-item"><span class="glyph">↔️</span><span id="iconDodge">누른 채 좌우로 밀기</span></div>
         <div class="icon-item"><span class="glyph">✋</span><span id="iconStop">빨간불엔 정지</span></div>
+      </div>
+      <div class="mode-picker">
+        <div class="mode-chips" id="modeChips"></div>
+        <div class="daily-info" id="dailyInfo"></div>
       </div>
       <div class="time-picker">
         <div class="time-chips" id="timeChips"></div>
@@ -265,7 +279,40 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
   const feedbackNote = document.getElementById('feedbackNote');
   const shareBtn = document.getElementById('shareBtn');
   const shareNote = document.getElementById('shareNote');
+  const modeChipsEl = document.getElementById('modeChips');
+  const dailyInfo = document.getElementById('dailyInfo');
   const GAME_URL = 'https://khjy01031730872-netizen.github.io/mugunghwa-game/';
+
+  // [R] "오늘의 트랙" — 결정론 PRNG(mulberry32). 외부 라이브러리 불필요, 몇 줄로 충분.
+  // 시드=UTC 날짜 문자열 해시. UTC를 쓰는 이유: 로컬 타임존을 쓰면 사용자마다 "오늘"이 달라져
+  // 전세계 동일 트랙이 깨지는 Wordle의 알려진 타임존 함정이 생긴다.
+  function hashStringToSeed(str){
+    let h = 1779033703 ^ str.length;
+    for(let i = 0; i < str.length; i++){
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return (h >>> 0);
+  }
+  function mulberry32(seed){
+    let a = seed >>> 0;
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function utcDateString(){
+    const d = new Date();
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+  }
+  let dailyMode = true; // 기본값: 마케팅 목적상 "오늘의 트랙"을 눈에 띄게(지시 R-1)
+  let dailyRng = null;
+  // [R-0] 게임플레이 랜덤 3곳(장애물 레인·초록불 지터·빨간불 길이)만 데일리 모드에서 시드로 대체.
+  // 먼지·confetti·shake 같은 연출용 랜덤은 공정성과 무관하므로 그대로 Math.random 유지(회귀 금지).
+  function nextRandom(){ return (dailyMode && dailyRng) ? dailyRng() : Math.random(); }
+  function resetDailyRngToToday(){ dailyRng = mulberry32(hashStringToSeed(utcDateString())); }
 
   const TRACK_START_Y = H - 60;
   const TRACK_END_Y = 70;
@@ -296,7 +343,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
       loseTitleRed: '걸렸습니다', loseMsgRed: '빨간불에 움직였습니다.',
       loseTitleObs: '장애물에 부딪혔습니다', loseMsgObs: '다른 쪽으로 피했어야 합니다.',
       loseMsgTime: '시간 초과입니다.',
-      footnote: '직원·지인 베타테스트용 v8 — 캐릭터에 실제로 달리는 모션(다리 움직임·기울임·발밑 먼지)을 추가했습니다. 종료 화면의 "피드백 보내기"로 느낀 점을 알려주세요. 라운드를 클리어할수록 구호 속도·술래 타이밍 변주·걸림 유예가 점점 빡빡해집니다(라운드 10에서 최고 난이도 도달 후 유지). 구호 음성은 여전히 초록불 구간을 정확히 채우고, 구호가 끝나는 순간 빨간불로 전환됩니다.<br>캐릭터·배경 이미지와 구호 음성은 모두 AI로 새로 생성한 자체 창작이며 특정 방송 콘텐츠를 참조하지 않았습니다.',
+      footnote: '직원·지인 베타테스트용 v10 — "오늘의 트랙"에서는 전세계가 같은 날 같은 장애물·타이밍에 도전합니다(기기 시계 기준, 서버 순위 아님). 종료 화면의 "피드백 보내기"로 느낀 점을 알려주세요. 라운드를 클리어할수록 구호 속도·술래 타이밍 변주·걸림 유예가 점점 빡빡해집니다(라운드 10에서 최고 난이도 도달 후 유지). 구호 음성은 여전히 초록불 구간을 정확히 채우고, 구호가 끝나는 순간 빨간불로 전환됩니다.<br>캐릭터·배경 이미지와 구호 음성은 모두 AI로 새로 생성한 자체 창작이며 특정 방송 콘텐츠를 참조하지 않았습니다.',
       langBtnLabel: 'EN', sec: '초',
       roundWord: '라운드', bestWord: '최고', clearWord: '클리어!', reachedWord: '도달',
       feedbackBtn: '✉️ 피드백 보내기', feedbackNoteIdle: '베타테스트 중입니다 — 느낀 점을 알려주시면 큰 도움이 됩니다.',
@@ -305,8 +352,11 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
       feedbackIntro: '아래 자동 첨부된 정보는 참고용입니다. 위에 자유롭게 의견을 적어주세요.\n\n1) 난이도: 몇 라운드에서 막혔나요? 너무 빨리/천천히 어려워졌나요?\n2) 조작감: 누른 채 좌우로 미는 조작이 잘 됐나요?\n3) 버그/이상한 점이 있었나요?\n4) 다시 하고 싶었나요? 언제 재밌고 언제 지루했나요?\n\n--- 자동 첨부 정보 ---\n',
       shareBtn: '🔗 결과 공유하기', shareTitle: '무궁화꽃이 피었습니다 — 베타',
       shareText: 'ROUND {round}까지 갔어요! 당신은 더 갈 수 있나요? 🌺',
+      shareTextDaily: '오늘의 트랙({date})에서 ROUND {round}까지 갔어요! 당신은? 🌺',
       shareNoteCopied: '공유 텍스트가 복사됐어요 — 카톡 등에 붙여넣기 해서 보내주세요.',
       newRecordMsg: '🎉 신기록 달성!', nearMissMsg: '아깝다, 거의 다 왔어요!',
+      modeDailyLabel: '🌏 오늘의 트랙', modeEndlessLabel: '♾️ 무한 도전',
+      dailyBadgeWord: '오늘의 트랙', dailyInfoLine: '오늘의 트랙 · {date} · 오늘 최고 {best}',
       diff: { 15: '⭐⭐⭐ 어려움 — 시간 압박이 큽니다', 20: '⭐⭐ 보통', 25: '⭐⭐ 보통', 30: '⭐ 쉬움', 35: '⭐ 쉬움', 40: '☆ 여유 — 장애물·빨간불에 집중하세요', 45: '☆ 여유 — 장애물·빨간불에 집중하세요' }
     },
     en: {
@@ -318,7 +368,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
       loseTitleRed: 'Caught!', loseMsgRed: 'You moved during the red light.',
       loseTitleObs: 'Hit an obstacle', loseMsgObs: 'You needed to dodge the other way.',
       loseMsgTime: "Time's up.",
-      footnote: 'Staff/friends beta build (v8) — the character now has real running motion (leg swing, lean, foot dust). Use "Send feedback" on the end screen to tell us what you thought. Each round you clear compresses the chant, adds timing jitter to the guard, and tightens the catch grace (difficulty peaks at round 10, then holds). The chant still fills the entire green light and red begins exactly when it ends.<br>Character/background art and the voice line are all original AI-generated assets, not based on any broadcast content.',
+      footnote: 'Staff/friends beta build (v10) — Daily Track gives everyone worldwide the same obstacles and timing on the same day (based on device clock, not a server leaderboard). Use "Send feedback" on the end screen to tell us what you thought. Each round you clear compresses the chant, adds timing jitter to the guard, and tightens the catch grace (difficulty peaks at round 10, then holds). The chant still fills the entire green light and red begins exactly when it ends.<br>Character/background art and the voice line are all original AI-generated assets, not based on any broadcast content.',
       langBtnLabel: '한국어', sec: 's',
       roundWord: 'ROUND', bestWord: 'BEST', clearWord: 'Cleared!', reachedWord: 'reached',
       feedbackBtn: '✉️ Send feedback', feedbackNoteIdle: "This is a beta test — your thoughts help a lot.",
@@ -327,8 +377,11 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
       feedbackIntro: 'The info below is auto-attached for reference. Feel free to write your thoughts above it.\n\n1) Difficulty: which round did you get stuck on? Did it ramp up too fast/slow?\n2) Controls: did hold + drag sideways feel good?\n3) Any bugs or anything odd?\n4) Did you want to replay? When was it fun vs. boring?\n\n--- auto-attached info ---\n',
       shareBtn: '🔗 Share result', shareTitle: 'Mugunghwa Beta',
       shareText: 'I got to ROUND {round}! Can you beat it? 🌺',
+      shareTextDaily: 'Daily Track ({date}): I reached ROUND {round}! Your turn? 🌺',
       shareNoteCopied: 'Copied to clipboard — paste it into KakaoTalk or anywhere.',
       newRecordMsg: '🎉 New personal best!', nearMissMsg: 'So close!',
+      modeDailyLabel: '🌏 Daily Track', modeEndlessLabel: '♾️ Endless',
+      dailyBadgeWord: 'Daily Track', dailyInfoLine: "Daily Track · {date} · today's best {best}",
       diff: { 15: '⭐⭐⭐ Hard — tight timing', 20: '⭐⭐ Medium', 25: '⭐⭐ Medium', 30: '⭐ Easy', 35: '⭐ Easy', 40: '☆ Relaxed — focus on red light & obstacles', 45: '☆ Relaxed — focus on red light & obstacles' }
     }
   };
@@ -344,11 +397,30 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     if(!isNaN(stored) && stored >= 0) bestRound = stored;
   } catch(e){}
   function updateBestRound(){
+    if(dailyMode) return; // [R] 무한도전 BEST는 무한도전 런에서만 갱신 — 데일리 성적과 섞지 않는다
     if(round > bestRound){
       bestRound = round;
       try { localStorage.setItem('mkp_best_round', String(bestRound)); } catch(e){}
     }
   }
+
+  // [R-3] 오늘의 트랙 최고기록 — 날짜별로 별도 저장(무한도전 BEST와 분리)
+  let dailyBestRound = 0;
+  function dailyBestKey(){ return 'mkp_daily_' + utcDateString(); }
+  function loadDailyBest(){
+    try {
+      const v = parseInt(localStorage.getItem(dailyBestKey()) || '0', 10);
+      return (!isNaN(v) && v >= 0) ? v : 0;
+    } catch(e){ return 0; }
+  }
+  function updateDailyBest(){
+    if(!dailyMode) return;
+    if(round > dailyBestRound){
+      dailyBestRound = round;
+      try { localStorage.setItem(dailyBestKey(), String(dailyBestRound)); } catch(e){}
+    }
+  }
+  function currentBestForMode(){ return dailyMode ? dailyBestRound : bestRound; }
 
   // ---- 오디오 ----
   let audioCtx = null;
@@ -446,6 +518,34 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
   }
   timeSlider.addEventListener('input', () => { selectedTime = parseInt(timeSlider.value, 10); syncTimeUI(); });
 
+  // [R-1] 모드 토글(오늘의 트랙/무한도전) — 시작화면에서만 선택, 게임 중엔 고정
+  function buildModeChips(){
+    const s = STRINGS[lang];
+    modeChipsEl.innerHTML = '';
+    [
+      { val: true, label: s.modeDailyLabel },
+      { val: false, label: s.modeEndlessLabel }
+    ].forEach(m => {
+      const chip = document.createElement('div');
+      chip.className = 'mode-chip' + (dailyMode === m.val ? ' active' : '');
+      chip.textContent = m.label;
+      chip.addEventListener('click', () => {
+        dailyMode = m.val;
+        if(dailyMode) dailyBestRound = loadDailyBest();
+        buildModeChips();
+        syncDailyInfo();
+        updateHud();
+      });
+      modeChipsEl.appendChild(chip);
+    });
+  }
+  function syncDailyInfo(){
+    const s = STRINGS[lang];
+    dailyInfo.textContent = dailyMode
+      ? s.dailyInfoLine.replace('{date}', utcDateString()).replace('{best}', dailyBestRound)
+      : '';
+  }
+
   function applyStrings(){
     const s = STRINGS[lang];
     document.getElementById('titleText').textContent = s.title;
@@ -463,6 +563,8 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     feedbackNote.textContent = s.feedbackNoteIdle;
     shareBtn.textContent = s.shareBtn;
     shareNote.textContent = '';
+    buildModeChips();
+    syncDailyInfo();
     syncTimeUI();
     updateHud();
   }
@@ -511,7 +613,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     let lastLane = -1;
     for(let i = 0; i < n; i++){
       let lane;
-      do { lane = Math.floor(Math.random() * 3); } while(lane === lastLane);
+      do { lane = Math.floor(nextRandom() * 3); } while(lane === lastLane); // [R] 데일리 모드면 시드 PRNG, 아니면 기존 Math.random
       lastLane = lane;
       const y = spanBottom - (i + 1) * ((spanBottom - spanTop) / (n + 1));
       obstacles.push({ y, x: LANE_XS[lane], passed: false });
@@ -550,7 +652,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     a.onended = null;
 
     // [L] ① 구호 속도(초록불 압축) + ② 술래 뒤도는 타이밍 지터 — 매 초록불마다 재계산
-    const jitter = (Math.random() * 2 - 1) * jitterAmpFor(round);
+    const jitter = (nextRandom() * 2 - 1) * jitterAmpFor(round); // [R] 데일리 모드면 시드 PRNG
     const rate = baseRateFor(round) * (1 + jitter);
     try { a.playbackRate = rate; } catch(e){}
     lightDuration = currentChantDurationMs() / rate; // 실측 재생 길이/rate와 100% 동일한 값(0.1% 오차 원칙)
@@ -566,7 +668,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     if(state === 'red') return;
     state = 'red';
     lightTimer = 0;
-    lightDuration = 900 + Math.random() * 1400; // 빨간불 길이는 라운드 불변(지시 L-2 제외 판단)
+    lightDuration = 900 + nextRandom() * 1400; // 빨간불 길이는 라운드 불변(지시 L-2 제외 판단). [R] 데일리 모드면 시드 PRNG
     redStartedAt = performance.now();
     redVignette.classList.add('active');
     botTiltTarget = 0; // 정면(전체) 응시 — 특정 x 조준 안 함
@@ -622,7 +724,10 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
   function updateHud(){
     const s = STRINGS[lang];
     updateBestRound();
-    roundBadge.textContent = s.roundWord + ' ' + round + ' · ' + s.bestWord + ' ' + bestRound;
+    updateDailyBest();
+    roundBadge.textContent = dailyMode
+      ? s.roundWord + ' ' + round + ' · ' + s.dailyBadgeWord + ' · ' + s.bestWord + ' ' + dailyBestRound
+      : s.roundWord + ' ' + round + ' · ' + s.bestWord + ' ' + bestRound;
     const progress = Math.max(0, Math.min(100, ((TRACK_START_Y - playerY) / (TRACK_START_Y - TRACK_END_Y)) * 100));
     progressFill.style.width = progress + '%';
     timeLeftEl.textContent = Math.max(0, Math.ceil(timeLeft));
@@ -637,6 +742,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
   // runStartBest(런 시작 시점 기록)와 비교해 신기록/아깝다를 판정한다.
   function endGame(won, reason){
     updateBestRound();
+    updateDailyBest();
     const s = STRINGS[lang];
     state = won ? 'won' : 'lost';
     loseReason = reason || 'red';
@@ -659,7 +765,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
       let recordLine = '';
       if(isNewRecord) recordLine = s.newRecordMsg + ' ';
       else if(isNearMiss) recordLine = s.nearMissMsg + ' ';
-      endMsg.textContent = recordLine + baseMsg + ' ' + s.roundWord + ' ' + round + ' ' + s.reachedWord + ' · ' + s.bestWord + ' ' + bestRound;
+      endMsg.textContent = recordLine + baseMsg + ' ' + s.roundWord + ' ' + round + ' ' + s.reachedWord + ' · ' + s.bestWord + ' ' + currentBestForMode();
       if(isNewRecord){ spawnConfetti(); playWinSfx(); }
       else { playCaughtSfx(); }
     }
@@ -953,13 +1059,25 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
   });
   window.addEventListener('keyup', (e) => { if(e.code === 'Space'){ holding = false; } });
 
-  startBtn.addEventListener('click', () => { startOverlay.classList.add('hidden'); runStartBest = bestRound; round = 1; resetGame(); startGame(); });
-  retryBtn.addEventListener('click', () => { endOverlay.classList.add('hidden'); runStartBest = bestRound; round = 1; resetGame(); startGame(); });
+  // [R-2] 데일리 모드면 그날 시드로 rng 리셋(재시도해도 항상 같은 시퀀스 재생) — 시작/재시도 공통 처리.
+  function beginRun(){
+    if(dailyMode){ resetDailyRngToToday(); dailyBestRound = loadDailyBest(); }
+    runStartBest = currentBestForMode();
+    round = 1;
+    resetGame();
+    startGame();
+  }
+  startBtn.addEventListener('click', () => { startOverlay.classList.add('hidden'); beginRun(); });
+  retryBtn.addEventListener('click', () => { endOverlay.classList.add('hidden'); beginRun(); });
 
   // [Q-2] 결과 공유 — Web Share API 우선, 미지원/실패 시 클립보드 복사 폴백(피드백 M-4 패턴 재사용).
-  // 공유 텍스트는 라운드 숫자만 포함(개인정보 없음), 오징어게임 등 특정 IP 명칭은 절대 쓰지 않는다(지시 Q-3).
+  // 공유 텍스트는 라운드 숫자만 포함(개인정보 없음), 오징어게임 등 특정 IP 명칭은 절대 쓰지 않는다(지시 Q-3/R-3).
   function buildShareText(){
-    return STRINGS[lang].shareText.replace('{round}', round);
+    const s = STRINGS[lang];
+    if(dailyMode){
+      return s.shareTextDaily.replace('{date}', utcDateString()).replace('{round}', round);
+    }
+    return s.shareText.replace('{round}', round);
   }
   shareBtn.addEventListener('click', async () => {
     const s = STRINGS[lang];
@@ -987,9 +1105,10 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
   function buildFeedbackBody(){
     const s = STRINGS[lang];
     const info = [
-      'version=v7',
+      'version=v10',
+      'mode=' + (dailyMode ? 'daily(' + utcDateString() + ')' : 'endless'),
       'round=' + round,
-      'best=' + bestRound,
+      'best=' + currentBestForMode(),
       'endReason=' + loseReason,
       'selectedTimeSec=' + selectedTime,
       'lang=' + lang,
@@ -1037,6 +1156,25 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     console.assert(Math.abs(catchGraceFor(15) - catchGraceFor(10)) < 1e-9, '[L-7] 라운드10 이후 catchGrace 동결(캡) 확인');
   })();
 
+  // [R-6] 자체 검증 — (1)같은 시드는 항상 같은 시퀀스(결정론), (2)다른 날짜 문자열은 다른 시드.
+  // 실제 게임 두 세션을 띄우지 않아도 mulberry32 자체의 결정론은 알고리즘 수준에서 증명 가능하다.
+  (function verifyDailySeedDeterminism(){
+    const todaySeed = hashStringToSeed(utcDateString());
+    const rngA = mulberry32(todaySeed), rngB = mulberry32(todaySeed);
+    const seqA = [rngA(), rngA(), rngA()];
+    const seqB = [rngB(), rngB(), rngB()];
+    console.log('[R-6 결정론검증] date=' + utcDateString() + ' seed=' + todaySeed +
+      ' seqA=' + seqA.map(v => v.toFixed(6)).join(',') +
+      ' seqB=' + seqB.map(v => v.toFixed(6)).join(','));
+    console.assert(JSON.stringify(seqA) === JSON.stringify(seqB),
+      '[R-6] 같은 시드(같은 날짜)는 항상 같은 랜덤 시퀀스를 내야 함');
+    const seedRef1 = hashStringToSeed('2026-01-01');
+    const seedRef2 = hashStringToSeed('2026-01-02');
+    console.assert(seedRef1 !== seedRef2, '[R-6] 다른 날짜 문자열은 다른 시드를 내야 함(트랙이 날마다 바뀜)');
+  })();
+
+  dailyBestRound = loadDailyBest();
+  syncDailyInfo();
   applyStrings();
   resetGame();
 })();
