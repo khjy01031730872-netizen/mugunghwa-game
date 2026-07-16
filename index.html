@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>무궁화꽃이 피었습니다 v10 — 플레이 데모(오늘의 트랙)</title>
+<title>무궁화꽃이 피었습니다 v11 — 플레이 데모(오늘의 트랙)</title>
 <style>
 :root{
   --bg-sky: #7ec9f0;
@@ -190,7 +190,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
 <body>
 <div class="stage">
   <div class="topbar">
-    <div class="eyebrow">DAEDONG FENCE · 2부1팀 v10 · BETA</div>
+    <div class="eyebrow">DAEDONG FENCE · 2부1팀 v11 · BETA</div>
     <div class="topbar-btns">
       <button class="muteToggle" id="muteBtn">🔊</button>
       <button class="langToggle" id="langBtn">EN</button>
@@ -203,6 +203,11 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     <canvas id="game" width="520" height="440" role="img" aria-label="게임 화면"></canvas>
     <div class="red-vignette" id="redVignette"></div>
     <div class="overlay" id="startOverlay">
+      <div id="inappBanner" style="display:none;background:#3a2f00;color:#ffe9a8;border:1px solid #7a6500;border-radius:8px;padding:8px 26px 8px 10px;margin:0 0 12px;font-size:12px;line-height:1.45;text-align:left;position:relative;max-width:420px;">
+        <span id="inappBannerText"></span>
+        <div><button id="inappBannerBtn" type="button" style="margin-top:6px;padding:4px 12px;font-size:12px;border-radius:6px;border:none;background:#ffcf4d;color:#3a2f00;cursor:pointer;font-weight:600;"></button></div>
+        <button id="inappBannerClose" type="button" aria-label="close" style="position:absolute;top:4px;right:6px;background:none;border:none;color:#ffe9a8;font-size:15px;cursor:pointer;line-height:1;">✕</button>
+      </div>
       <h2 id="startTitle">시작하기</h2>
       <div class="icon-row">
         <div class="icon-item"><span class="glyph">👆</span><span id="iconHold">누르고 있기 = 전진</span></div>
@@ -343,12 +348,14 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
       loseTitleRed: '걸렸습니다', loseMsgRed: '빨간불에 움직였습니다.',
       loseTitleObs: '장애물에 부딪혔습니다', loseMsgObs: '다른 쪽으로 피했어야 합니다.',
       loseMsgTime: '시간 초과입니다.',
-      footnote: '직원·지인 베타테스트용 v10 — "오늘의 트랙"에서는 전세계가 같은 날 같은 장애물·타이밍에 도전합니다(기기 시계 기준, 서버 순위 아님). 종료 화면의 "피드백 보내기"로 느낀 점을 알려주세요. 라운드를 클리어할수록 구호 속도·술래 타이밍 변주·걸림 유예가 점점 빡빡해집니다(라운드 10에서 최고 난이도 도달 후 유지). 구호 음성은 여전히 초록불 구간을 정확히 채우고, 구호가 끝나는 순간 빨간불로 전환됩니다.<br>캐릭터·배경 이미지와 구호 음성은 모두 AI로 새로 생성한 자체 창작이며 특정 방송 콘텐츠를 참조하지 않았습니다.',
+      footnote: '직원·지인 베타테스트용 v11 — "오늘의 트랙"에서는 전세계가 같은 날 같은 장애물·타이밍에 도전합니다(기기 시계 기준, 서버 순위 아님). 종료 화면의 "피드백 보내기"로 느낀 점을 알려주세요. 라운드를 클리어할수록 구호 속도·술래 타이밍 변주·걸림 유예가 점점 빡빡해집니다(라운드 10에서 최고 난이도 도달 후 유지). 구호 음성은 여전히 초록불 구간을 정확히 채우고, 구호가 끝나는 순간 빨간불로 전환됩니다.<br>캐릭터·배경 이미지와 구호 음성은 모두 AI로 새로 생성한 자체 창작이며 특정 방송 콘텐츠를 참조하지 않았습니다.',
       langBtnLabel: 'EN', sec: '초',
       roundWord: '라운드', bestWord: '최고', clearWord: '클리어!', reachedWord: '도달',
       feedbackBtn: '✉️ 피드백 보내기', feedbackNoteIdle: '베타테스트 중입니다 — 느낀 점을 알려주시면 큰 도움이 됩니다.',
       feedbackNoteSent: '메일 앱이 안 열리면, 방금 복사된 내용을 카톡으로 보내주세요.',
       feedbackSubject: '[무궁화꽃이피었습니다 베타] 피드백',
+      inappBannerText: '일부 인앱 브라우저(카톡·인스타 등)에서는 소리가 제한될 수 있어요. 소리가 안 나오면 Chrome/Safari로 열어주세요.',
+      inappBannerBtn: '브라우저에서 열기',
       feedbackIntro: '아래 자동 첨부된 정보는 참고용입니다. 위에 자유롭게 의견을 적어주세요.\n\n1) 난이도: 몇 라운드에서 막혔나요? 너무 빨리/천천히 어려워졌나요?\n2) 조작감: 누른 채 좌우로 미는 조작이 잘 됐나요?\n3) 버그/이상한 점이 있었나요?\n4) 다시 하고 싶었나요? 언제 재밌고 언제 지루했나요?\n\n--- 자동 첨부 정보 ---\n',
       shareBtn: '🔗 결과 공유하기', shareTitle: '무궁화꽃이 피었습니다 — 베타',
       shareText: 'ROUND {round}까지 갔어요! 당신은 더 갈 수 있나요? 🌺',
@@ -368,12 +375,14 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
       loseTitleRed: 'Caught!', loseMsgRed: 'You moved during the red light.',
       loseTitleObs: 'Hit an obstacle', loseMsgObs: 'You needed to dodge the other way.',
       loseMsgTime: "Time's up.",
-      footnote: 'Staff/friends beta build (v10) — Daily Track gives everyone worldwide the same obstacles and timing on the same day (based on device clock, not a server leaderboard). Use "Send feedback" on the end screen to tell us what you thought. Each round you clear compresses the chant, adds timing jitter to the guard, and tightens the catch grace (difficulty peaks at round 10, then holds). The chant still fills the entire green light and red begins exactly when it ends.<br>Character/background art and the voice line are all original AI-generated assets, not based on any broadcast content.',
+      footnote: 'Staff/friends beta build (v11) — Daily Track gives everyone worldwide the same obstacles and timing on the same day (based on device clock, not a server leaderboard). Use "Send feedback" on the end screen to tell us what you thought. Each round you clear compresses the chant, adds timing jitter to the guard, and tightens the catch grace (difficulty peaks at round 10, then holds). The chant still fills the entire green light and red begins exactly when it ends.<br>Character/background art and the voice line are all original AI-generated assets, not based on any broadcast content.',
       langBtnLabel: '한국어', sec: 's',
       roundWord: 'ROUND', bestWord: 'BEST', clearWord: 'Cleared!', reachedWord: 'reached',
       feedbackBtn: '✉️ Send feedback', feedbackNoteIdle: "This is a beta test — your thoughts help a lot.",
       feedbackNoteSent: "If your mail app didn't open, the text was copied — please send it via KakaoTalk instead.",
       feedbackSubject: '[Mugunghwa Beta] Feedback',
+      inappBannerText: 'Some in-app browsers (KakaoTalk, Instagram, etc.) may limit sound. If you hear nothing, open in Chrome/Safari.',
+      inappBannerBtn: 'Open in browser',
       feedbackIntro: 'The info below is auto-attached for reference. Feel free to write your thoughts above it.\n\n1) Difficulty: which round did you get stuck on? Did it ramp up too fast/slow?\n2) Controls: did hold + drag sideways feel good?\n3) Any bugs or anything odd?\n4) Did you want to replay? When was it fun vs. boring?\n\n--- auto-attached info ---\n',
       shareBtn: '🔗 Share result', shareTitle: 'Mugunghwa Beta',
       shareText: 'I got to ROUND {round}! Can you beat it? 🌺',
@@ -567,6 +576,11 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     syncDailyInfo();
     syncTimeUI();
     updateHud();
+    // [O-3-②] 인앱 배너 문구도 언어 전환에 맞춰 갱신(배너가 떠 있을 때만 의미 있음)
+    const _ibt = document.getElementById('inappBannerText');
+    const _ibb = document.getElementById('inappBannerBtn');
+    if(_ibt) _ibt.textContent = s.inappBannerText || '';
+    if(_ibb) _ibb.textContent = s.inappBannerBtn || '';
   }
   langBtn.addEventListener('click', () => { lang = lang === 'ko' ? 'en' : 'ko'; applyStrings(); });
 
@@ -1067,8 +1081,53 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
     resetGame();
     startGame();
   }
-  startBtn.addEventListener('click', () => { startOverlay.classList.add('hidden'); beginRun(); });
-  retryBtn.addEventListener('click', () => { endOverlay.classList.add('hidden'); beginRun(); });
+  // [O-3-①] 제스처 1회 오디오 언락 — 2라운드+ setTimeout 안의 chant.play()가 엄격한 인앱 웹뷰에서
+  // 차단되는 잠재 위험(O-2-A)을 완화한다. 게임당 1회, startBtn 클릭(사용자 제스처) 안에서만 실행.
+  // 회귀 방지: play→즉시 pause+currentTime=0으로 "완료"가 아닌 "활성화" 상태만 만들어, 1라운드 정상 재생에 영향 없음.
+  let audioUnlocked = false;
+  function unlockAudio(){
+    if(audioUnlocked) return;
+    audioUnlocked = true;
+    [chantKo, chantEn].forEach(a => {
+      if(!a) return;
+      try {
+        const p = a.play();
+        if(p && p.then){ p.then(() => { a.pause(); a.currentTime = 0; }).catch(() => {}); }
+        else { a.pause(); a.currentTime = 0; }
+      } catch(e){}
+    });
+    ensureAudioCtx();
+    if(audioCtx){
+      try {
+        const buf = audioCtx.createBuffer(1, 1, 22050);
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
+      } catch(e){}
+    }
+  }
+  startBtn.addEventListener('click', () => { unlockAudio(); startOverlay.classList.add('hidden'); beginRun(); });
+  retryBtn.addEventListener('click', () => { unlockAudio(); endOverlay.classList.add('hidden'); beginRun(); });
+
+  // [O-3-②] 인앱 웹뷰 감지 + 외부 브라우저 안내 배너(비차단, 닫기 가능). UA 시그니처 기반 —
+  // 일반 Chrome/Safari(데스크톱·모바일)에는 뜨지 않는다(오탐 방지). 100% 강제 이탈은 불가하므로 "안내"가 핵심.
+  const INAPP_UA_PATTERNS = [/KAKAOTALK/i, /Instagram/i, /FBAN|FBAV/i, /Line\//i, /NAVER\(inapp/i, /DaumApps/i];
+  (function setupInAppBanner(){
+    const banner = document.getElementById('inappBanner');
+    if(!banner) return;
+    const btn = document.getElementById('inappBannerBtn');
+    const closeBtn = document.getElementById('inappBannerClose');
+    const ua = navigator.userAgent || '';
+    const isInApp = INAPP_UA_PATTERNS.some(re => re.test(ua));
+    if(isInApp){
+      const s = STRINGS[lang];
+      const txt = document.getElementById('inappBannerText');
+      if(txt) txt.textContent = s.inappBannerText || '';
+      if(btn) btn.textContent = s.inappBannerBtn || '';
+      banner.style.display = 'block';
+    }
+    if(btn) btn.addEventListener('click', () => { try { window.location.href = window.location.href; } catch(e){} });
+    if(closeBtn) closeBtn.addEventListener('click', () => { banner.style.display = 'none'; });
+  })();
 
   // [Q-2] 결과 공유 — Web Share API 우선, 미지원/실패 시 클립보드 복사 폴백(피드백 M-4 패턴 재사용).
   // 공유 텍스트는 라운드 숫자만 포함(개인정보 없음), 오징어게임 등 특정 IP 명칭은 절대 쓰지 않는다(지시 Q-3/R-3).
@@ -1105,7 +1164,7 @@ button.share:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; 
   function buildFeedbackBody(){
     const s = STRINGS[lang];
     const info = [
-      'version=v10',
+      'version=v11',
       'mode=' + (dailyMode ? 'daily(' + utcDateString() + ')' : 'endless'),
       'round=' + round,
       'best=' + currentBestForMode(),
